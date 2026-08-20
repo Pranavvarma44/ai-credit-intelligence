@@ -3,6 +3,7 @@ from app.schemas.applicant import ApplicantRequest
 from app.schemas.response import PredictionResponse
 
 from app.services.prediction import predict_applicant
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(
@@ -10,7 +11,15 @@ app = FastAPI(
     description="API for the Credit Risk Prediction System",
     version="1.0.0"
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def home():

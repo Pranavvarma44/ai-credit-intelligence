@@ -39,7 +39,7 @@ function Login({
 
       const response =
         await fetch(
-          "{API_URL}/auth/login",
+            `${API_URL}/auth/login`,
           {
             method: "POST",
 

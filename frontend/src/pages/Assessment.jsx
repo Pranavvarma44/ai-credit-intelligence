@@ -478,7 +478,7 @@ function Assessment({ onResult }) {
 
       const response =
         await fetch(
-          "{API_URL}/predict",
+          `${API_URL}/predict`,
           {
             method: "POST",
 

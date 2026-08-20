@@ -1,14 +1,19 @@
 import numpy as np
 import pandas as pd
 
+
+# ==================================================
+# CONFIGURATION
+# ==================================================
+
 np.random.seed(42)
 
 N = 30000
 
 
-# --------------------------------------------------
+# ==================================================
 # 1. AGE
-# --------------------------------------------------
+# ==================================================
 
 age = np.random.randint(
     21,
@@ -17,9 +22,9 @@ age = np.random.randint(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 2. EMPLOYMENT TYPE
-# --------------------------------------------------
+# ==================================================
 
 employment_type = np.random.choice(
     [
@@ -32,9 +37,9 @@ employment_type = np.random.choice(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 3. EMPLOYMENT YEARS
-# --------------------------------------------------
+# ==================================================
 
 potential_work_years = age - 18
 
@@ -60,9 +65,9 @@ employment_years = np.round(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 4. MONTHLY INCOME
-# --------------------------------------------------
+# ==================================================
 
 monthly_income = np.random.lognormal(
     mean=np.log(50_000),
@@ -77,9 +82,9 @@ monthly_income = np.clip(
 ).astype(int)
 
 
-# --------------------------------------------------
+# ==================================================
 # 5. LOAN AMOUNT
-# --------------------------------------------------
+# ==================================================
 
 annual_income = monthly_income * 12
 
@@ -101,9 +106,9 @@ loan_amount = np.clip(
 ).astype(int)
 
 
-# --------------------------------------------------
+# ==================================================
 # 6. LOAN TENURE
-# --------------------------------------------------
+# ==================================================
 
 loan_tenure_months = np.random.choice(
     [12, 24, 36, 48, 60],
@@ -112,9 +117,9 @@ loan_tenure_months = np.random.choice(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 7. INTEREST RATE
-# --------------------------------------------------
+# ==================================================
 
 interest_rate = np.random.uniform(
     10,
@@ -129,9 +134,9 @@ monthly_rate = (
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 8. NEW LOAN EMI
-# --------------------------------------------------
+# ==================================================
 
 P = loan_amount
 r = monthly_rate
@@ -143,9 +148,21 @@ loan_emi = (
 )
 
 
-# --------------------------------------------------
-# 9. EXISTING LOANS
-# --------------------------------------------------
+# ==================================================
+# 9. NEW-TO-CREDIT FLAG
+# ==================================================
+
+# Approximately 15% of applicants
+# have no formal credit history.
+
+ntc_flag = (
+    np.random.random(N) < 0.15
+)
+
+
+# ==================================================
+# 10. EXISTING LOANS
+# ==================================================
 
 existing_loans = np.random.poisson(
     lam=1.0,
@@ -158,10 +175,13 @@ existing_loans = np.clip(
     5
 )
 
+# NTC applicants have no existing credit loans
+existing_loans[ntc_flag] = 0
 
-# --------------------------------------------------
-# 10. EXISTING LOAN PAYMENTS
-# --------------------------------------------------
+
+# ==================================================
+# 11. EXISTING LOAN PAYMENTS
+# ==================================================
 
 existing_loan_payment_per_loan = np.random.uniform(
     3_000,
@@ -175,9 +195,9 @@ existing_loan_payment = (
 )
 
 
-# --------------------------------------------------
-# 11. TOTAL MONTHLY DEBT
-# --------------------------------------------------
+# ==================================================
+# 12. TOTAL MONTHLY DEBT
+# ==================================================
 
 monthly_debt_payment = (
     loan_emi +
@@ -185,9 +205,9 @@ monthly_debt_payment = (
 )
 
 
-# --------------------------------------------------
-# 12. POST-LOAN DTI
-# --------------------------------------------------
+# ==================================================
+# 13. POST-LOAN DTI
+# ==================================================
 
 debt_to_income_ratio = (
     monthly_debt_payment /
@@ -201,22 +221,9 @@ debt_to_income_ratio = np.clip(
 )
 
 
-# --------------------------------------------------
-# 13. NEW-TO-CREDIT FLAG
-# --------------------------------------------------
-
-# Prototype assumption:
-# approximately 15% of applicants have no formal
-# credit history.
-
-ntc_flag = (
-    np.random.random(N) < 0.15
-)
-
-
-# --------------------------------------------------
+# ==================================================
 # 14. CREDIT HISTORY
-# --------------------------------------------------
+# ==================================================
 
 credit_history_months = np.zeros(N)
 
@@ -259,14 +266,14 @@ credit_history_months = (
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 15. CREDIT UTILIZATION
-# --------------------------------------------------
+# ==================================================
 
 credit_utilization = np.zeros(N)
 
-# Traditional utilization unavailable for NTC
-# applicants in this prototype.
+# Traditional utilization is unavailable
+# for NTC applicants.
 
 credit_utilization[non_ntc] = (
     np.random.beta(
@@ -283,9 +290,9 @@ credit_utilization = np.clip(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 16. PREVIOUS MISSED PAYMENTS
-# --------------------------------------------------
+# ==================================================
 
 previous_missed_payments = np.random.poisson(
     lam=0.4,
@@ -298,10 +305,13 @@ previous_missed_payments = np.clip(
     6
 )
 
+# NTC applicants have no previous credit history
+previous_missed_payments[ntc_flag] = 0
 
-# --------------------------------------------------
+
+# ==================================================
 # 17. REPAYMENT CONSISTENCY
-# --------------------------------------------------
+# ==================================================
 
 repayment_consistency = (
     np.random.beta(
@@ -322,9 +332,9 @@ repayment_consistency = np.clip(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # 18. MONTHLY TRANSACTIONS
-# --------------------------------------------------
+# ==================================================
 
 monthly_transactions = np.random.poisson(
     lam=40,
@@ -337,20 +347,41 @@ monthly_transactions = np.maximum(
 )
 
 
-# --------------------------------------------------
-# 19. TRANSACTION VOLUME
-# --------------------------------------------------
+# ==================================================
+# 19. MONTHLY SPENDING
+# ==================================================
 
-# Synthetic simulation parameter.
+# Synthetic monthly spending.
+#
+# In the actual application, this will be
+# provided by the user.
+#
+# It is used here to create the same relationship
+# that the frontend will later use.
+
 transaction_income_fraction = np.random.uniform(
     0.4,
     0.9,
     N
 )
 
-average_transaction_amount = (
+monthly_spending = (
     monthly_income *
-    transaction_income_fraction /
+    transaction_income_fraction
+)
+
+
+# ==================================================
+# 20. AVERAGE TRANSACTION AMOUNT
+# ==================================================
+
+# Frontend equivalent:
+#
+# average_transaction_amount =
+#     monthly_spending / monthly_transactions
+
+average_transaction_amount = (
+    monthly_spending /
     monthly_transactions
 )
 
@@ -365,197 +396,137 @@ average_transaction_amount = np.round(
 )
 
 
-# --------------------------------------------------
-# 20. SPENDING HISTORY
-# --------------------------------------------------
-
-spending_history = np.random.lognormal(
-    mean=np.log(
-        np.maximum(
-            monthly_income *
-            transaction_income_fraction,
-            1
-        )
-    )[:, None],
-    sigma=0.20,
-    size=(N, 6)
-)
-
-spending_volatility = (
-    spending_history.std(axis=1) /
-    spending_history.mean(axis=1)
-)
-
-
-# --------------------------------------------------
-# 21. INCOME HISTORY
-# --------------------------------------------------
-
-income_history = np.random.lognormal(
-    mean=np.log(
-        np.maximum(
-            monthly_income,
-            1
-        )
-    )[:, None],
-    sigma=0.15,
-    size=(N, 6)
-)
-
-income_variation = (
-    income_history.std(axis=1) /
-    income_history.mean(axis=1)
-)
-
-
-# --------------------------------------------------
-# 22. INCOME STABILITY
-# --------------------------------------------------
-
-income_stability = (
-    1 /
-    (1 + income_variation)
-)
-
-income_stability = np.clip(
-    income_stability,
-    0,
-    1
-)
-
-
-# --------------------------------------------------
-# 23. NET CASH-FLOW HISTORY
-# --------------------------------------------------
-
-net_cash_flow_history = (
-    income_history -
-    spending_history
-)
-
-
-# --------------------------------------------------
-# 24. NET CASH-FLOW VARIATION
-# --------------------------------------------------
-
-net_cash_flow_variation = (
-    net_cash_flow_history.std(axis=1) /
-    np.maximum(
-        np.abs(
-            net_cash_flow_history.mean(axis=1)
-        ),
-        1
-    )
-)
-
-
-# --------------------------------------------------
-# 25. CASH-FLOW STABILITY
-# --------------------------------------------------
-
-cash_flow_stability = (
-    1 /
-    (1 + net_cash_flow_variation)
-)
-
-cash_flow_stability = np.clip(
-    cash_flow_stability,
-    0,
-    1
-)
-
-
-# --------------------------------------------------
-# 26. CREATE INITIAL DATAFRAME
-# --------------------------------------------------
+# ==================================================
+# 21. CREATE INITIAL DATAFRAME
+# ==================================================
 
 data = pd.DataFrame({
+
     "age": age,
+
     "employment_type": employment_type,
+
     "employment_years": employment_years,
+
     "monthly_income": monthly_income,
 
     "loan_amount": loan_amount,
+
     "loan_tenure_months": loan_tenure_months,
+
     "existing_loans": existing_loans,
+
     "monthly_debt_payment": monthly_debt_payment,
+
     "post_loan_dti": debt_to_income_ratio,
 
     "credit_history_months": credit_history_months,
-    "credit_utilization": credit_utilization,
-    "repayment_consistency": repayment_consistency,
-    "previous_missed_payments": previous_missed_payments,
 
-    "monthly_transactions": monthly_transactions,
-    "average_transaction_amount": average_transaction_amount,
-    "spending_volatility": spending_volatility,
-    "cash_flow_stability": cash_flow_stability,
-    "income_stability": income_stability
+    "credit_utilization": credit_utilization,
+
+    "repayment_consistency": repayment_consistency,
+
+    "previous_missed_payments":
+        previous_missed_payments,
+
+    "monthly_transactions":
+        monthly_transactions,
+
+    "average_transaction_amount":
+        average_transaction_amount,
+
+    "ntc_flag":
+        ntc_flag.astype(int)
 })
 
 
-# --------------------------------------------------
-# 27. NORMALIZED RISK COMPONENTS
-# --------------------------------------------------
+# ==================================================
+# 22. LOAN AFFORDABILITY RISK
+# ==================================================
+
+# Measures the requested loan relative to
+# the applicant's annual income.
+
+loan_burden = (
+    data["loan_amount"] /
+    (data["monthly_income"] * 12)
+)
+
+loan_burden = np.clip(
+    loan_burden,
+    0,
+    2
+)
+
+loan_burden_risk = np.clip(
+    loan_burden,
+    0,
+    1
+)
+
+
+# ==================================================
+# 23. NORMALIZED RISK COMPONENTS
+# ==================================================
 
 dti_risk = np.clip(
-    data["post_loan_dti"] / 1.0,
+    data["post_loan_dti"],
     0,
     1
 )
 
 utilization_risk = (
-    data["credit_utilization"] / 100
+    data["credit_utilization"] /
+    100
 )
 
 missed_payment_risk = np.clip(
-    data["previous_missed_payments"] / 3,
+    data["previous_missed_payments"] /
+    3,
     0,
     1
 )
 
 repayment_risk = (
     1 -
-    data["repayment_consistency"] / 100
-)
-
-spending_risk = np.clip(
-    data["spending_volatility"] / 0.4,
-    0,
-    1
-)
-
-cash_flow_risk = (
-    1 -
-    data["cash_flow_stability"]
-)
-
-income_stability_risk = (
-    1 -
-    data["income_stability"]
+    data["repayment_consistency"] /
+    100
 )
 
 
-# --------------------------------------------------
-# 28. LATENT RISK SCORE
-# --------------------------------------------------
+# ==================================================
+# 24. LATENT RISK SCORE
+# ==================================================
+
+# IMPORTANT:
+#
+# NTC status itself does NOT reduce risk.
+#
+# NTC applicants simply have no historical
+# credit information.
+#
+# Current affordability therefore matters
+# for both NTC and non-NTC applicants.
 
 risk_score = (
-    2.0 * dti_risk
+
+    3.0 * dti_risk
+
+    + 1.5 * loan_burden_risk
+
     + 1.5 * utilization_risk
+
     + 1.5 * missed_payment_risk
+
     + 1.5 * repayment_risk
-    + 1.0 * spending_risk
-    + 1.0 * cash_flow_risk
-    + 0.8 * income_stability_risk
 )
 
 
-# --------------------------------------------------
-# 29. PROBABILITY OF DEFAULT
-# --------------------------------------------------
+# ==================================================
+# 25. PROBABILITY OF DEFAULT
+# ==================================================
 
-risk_threshold = 5.0
+risk_threshold = 6.0
 
 probability_of_default = (
     1 /
@@ -568,9 +539,9 @@ probability_of_default = (
 )
 
 
-# --------------------------------------------------
-# 30. DEFAULT OUTCOME
-# --------------------------------------------------
+# ==================================================
+# 26. DEFAULT OUTCOME
+# ==================================================
 
 default = (
     np.random.random(N)
@@ -579,9 +550,11 @@ default = (
 ).astype(int)
 
 
-# --------------------------------------------------
-# 31. ADD TARGET + MODELING VARIABLES
-# --------------------------------------------------
+# ==================================================
+# 27. ADD TARGET + MODELING VARIABLES
+# ==================================================
+
+data["loan_burden"] = loan_burden
 
 data["risk_score"] = risk_score
 
@@ -592,9 +565,9 @@ data["probability_of_default"] = (
 data["default"] = default
 
 
-# --------------------------------------------------
-# 32. SAVE DATASET
-# --------------------------------------------------
+# ==================================================
+# 28. SAVE DATASET
+# ==================================================
 
 data.to_csv(
     "credit_risk_dataset.csv",
@@ -602,9 +575,9 @@ data.to_csv(
 )
 
 
-# --------------------------------------------------
-# 33. VALIDATION
-# --------------------------------------------------
+# ==================================================
+# 29. VALIDATION
+# ==================================================
 
 print("\n==============================")
 print("DATASET SUMMARY")
@@ -620,13 +593,17 @@ print(
             "credit_history_months",
             "credit_utilization",
             "previous_missed_payments",
-            "spending_volatility",
-            "cash_flow_stability",
-            "income_stability"
+            "repayment_consistency",
+            "monthly_transactions",
+            "average_transaction_amount"
         ]
     ].describe()
 )
 
+
+# ==================================================
+# PROBABILITY OF DEFAULT
+# ==================================================
 
 print("\n==============================")
 print("PROBABILITY OF DEFAULT")
@@ -637,6 +614,10 @@ print(
 )
 
 
+# ==================================================
+# DEFAULT DISTRIBUTION
+# ==================================================
+
 print("\n==============================")
 print("DEFAULT DISTRIBUTION")
 print("==============================")
@@ -645,6 +626,10 @@ print(
     data["default"].value_counts()
 )
 
+
+# ==================================================
+# DEFAULT RATE
+# ==================================================
 
 print("\n==============================")
 print("DEFAULT RATE")
@@ -655,6 +640,10 @@ print(
 )
 
 
+# ==================================================
+# RISK SCORE BY DEFAULT
+# ==================================================
+
 print("\n==============================")
 print("RISK SCORE BY DEFAULT")
 print("==============================")
@@ -663,6 +652,10 @@ print(
     data.groupby("default")["risk_score"].mean()
 )
 
+
+# ==================================================
+# PROBABILITY BY DEFAULT
+# ==================================================
 
 print("\n==============================")
 print("PROBABILITY BY DEFAULT")
@@ -675,6 +668,10 @@ print(
 )
 
 
+# ==================================================
+# RISK FEATURES BY DEFAULT
+# ==================================================
+
 print("\n==============================")
 print("RISK FEATURES BY DEFAULT")
 print("==============================")
@@ -683,25 +680,159 @@ print(
     data.groupby("default")[
         [
             "post_loan_dti",
+            "loan_burden",
             "credit_utilization",
             "previous_missed_payments",
             "repayment_consistency",
-            "spending_volatility",
-            "cash_flow_stability",
-            "income_stability"
+            "monthly_transactions",
+            "average_transaction_amount"
         ]
     ].mean()
 )
 
+
+# ==================================================
+# NTC PERCENTAGE
+# ==================================================
 
 print("\n==============================")
 print("NTC PERCENTAGE")
 print("==============================")
 
 print(
-    f"{(data['credit_history_months'] == 0).mean():.4%}"
+    f"{data['ntc_flag'].mean():.4%}"
 )
 
+
+# ==================================================
+# NTC DEFAULT RATE
+# ==================================================
+
+print("\n==============================")
+print("NTC DEFAULT RATE")
+print("==============================")
+
+print(
+    data.groupby("ntc_flag")[
+        "default"
+    ].mean()
+)
+
+
+# ==================================================
+# NTC RISK BY DTI
+# ==================================================
+
+print("\n==============================")
+print("NTC RISK BY DTI")
+print("==============================")
+
+data["dti_bucket"] = pd.cut(
+    data["post_loan_dti"],
+    bins=[
+        0,
+        0.3,
+        0.5,
+        0.7,
+        0.8,
+        1.0,
+        1.5
+    ],
+    include_lowest=True
+)
+
+print(
+    data[
+        data["ntc_flag"] == 1
+    ].groupby(
+        "dti_bucket",
+        observed=True
+    )["default"].agg(
+        [
+            "count",
+            "mean"
+        ]
+    )
+)
+
+
+# ==================================================
+# HIGH-RISK NTC APPLICANTS
+# ==================================================
+
+print("\n==============================")
+print("HIGH-RISK NTC APPLICANTS")
+print("==============================")
+
+high_risk_ntc = data[
+    (data["ntc_flag"] == 1) &
+    (data["post_loan_dti"] >= 0.8)
+]
+
+print(
+    high_risk_ntc[
+        [
+            "monthly_income",
+            "loan_amount",
+            "post_loan_dti",
+            "loan_burden",
+            "employment_years",
+            "employment_type",
+            "default"
+        ]
+    ].describe()
+)
+
+
+# ==================================================
+# HIGH-RISK NTC DEFAULT RATE
+# ==================================================
+
+print("\n==============================")
+print("HIGH-RISK NTC DEFAULT RATE")
+print("==============================")
+
+if len(high_risk_ntc) > 0:
+
+    print(
+        high_risk_ntc["default"].mean()
+    )
+
+    print(
+        "Count:",
+        len(high_risk_ntc)
+    )
+
+else:
+
+    print(
+        "No high-risk NTC applicants found."
+    )
+
+
+# ==================================================
+# NTC VALIDATION
+# ==================================================
+
+print("\n==============================")
+print("NTC VALIDATION")
+print("==============================")
+
+print(
+    data.groupby("ntc_flag")[
+        [
+            "existing_loans",
+            "credit_history_months",
+            "credit_utilization",
+            "previous_missed_payments"
+        ]
+    ].mean()
+)
+
+
+# ==================================================
+# NTC CREDIT UTILIZATION
+# ==================================================
 
 print("\n==============================")
 print("NTC CREDIT UTILIZATION")
@@ -709,16 +840,23 @@ print("==============================")
 
 print(
     data[
-        data["credit_history_months"] == 0
+        data["ntc_flag"] == 1
     ]["credit_utilization"].describe()
 )
 
+
+# ==================================================
+# DATASET SHAPE
+# ==================================================
 
 print("\n==============================")
 print("DATASET SHAPE")
 print("==============================")
 
-print(data.shape)
+print(
+    data.shape
+)
+
 
 print("\nDataset saved as:")
 print("credit_risk_dataset.csv")

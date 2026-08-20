@@ -2,14 +2,17 @@ from pydantic import BaseModel
 
 
 class ApplicantRequest(BaseModel):
+
     age: int
     employment_type: str
     employment_years: float
 
     monthly_income: float
+
     loan_amount: float
     loan_tenure_months: int
     existing_loans: int
+
     monthly_debt_payment: float
     post_loan_dti: float
 
@@ -20,6 +23,4 @@ class ApplicantRequest(BaseModel):
 
     monthly_transactions: int
     average_transaction_amount: float
-    spending_volatility: float
-    cash_flow_stability: float
-    income_stability: float
+    ntc_flag: int

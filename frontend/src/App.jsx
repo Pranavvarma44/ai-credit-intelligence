@@ -1,30 +1,135 @@
 import { useState } from "react";
 
 import Header from "./components/Header";
+
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Assessment from "./pages/Assessment";
 import Results from "./pages/Results";
+import WhatIf from "./pages/whatif";
 
 
 function App() {
 
-  const [result, setResult] = useState(null);
+  const [page, setPage] =
+    useState("login");
+
+  const [result, setResult] =
+    useState(null);
+
+  const [applicant, setApplicant] =
+    useState(null);
+
+
+  // --------------------------------------------------
+  // AFTER LOGIN
+  // --------------------------------------------------
+
+  const handleLogin = () => {
+
+    setPage("assessment");
+  };
+
+
+  // --------------------------------------------------
+  // AFTER ASSESSMENT
+  // --------------------------------------------------
+
+  const handleResult = ({
+    result,
+    applicant,
+  }) => {
+
+    setResult(result);
+
+    setApplicant(applicant);
+
+    setPage("results");
+  };
 
 
   return (
     <>
+
       <Header />
 
-      {result ? (
+
+      {/* LOGIN */}
+
+      {page === "login" && (
+
+        <Login
+          onLogin={handleLogin}
+
+          onRegister={() =>
+            setPage("register")
+          }
+        />
+
+      )}
+
+
+      {/* REGISTER */}
+
+      {page === "register" && (
+
+        <Register
+          onLogin={() =>
+            setPage("login")
+          }
+        />
+
+      )}
+
+
+      {/* ASSESSMENT */}
+
+      {page === "assessment" && (
+
+        <Assessment
+          onResult={handleResult}
+        />
+
+      )}
+
+
+      {/* RESULTS */}
+
+      {page === "results" && result && (
 
         <Results
           result={result}
-          onBack={() => setResult(null)}
+
+          applicant={applicant}
+
+          onBack={() => {
+            setResult(null);
+            setApplicant(null);
+            setPage("assessment");
+          }}
+
+          onWhatIf={() =>
+            setPage("whatif")
+          }
+
         />
 
-      ) : (
+      )}
 
-        <Assessment
-          onResult={setResult}
+
+      {/* WHAT-IF */}
+
+      {page === "whatif" && applicant && (
+
+        <WhatIf
+          applicant={applicant}
+
+          result={result}
+
+          onBack={() =>
+            setPage("results")
+          }
+
         />
 
       )}

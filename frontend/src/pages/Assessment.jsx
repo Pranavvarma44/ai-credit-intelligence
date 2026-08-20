@@ -7,6 +7,9 @@ import {
   CreditCard,
   Activity,
   ArrowRight,
+  Sparkles,
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 
 import FormSection from "../components/FormSection";
@@ -16,36 +19,66 @@ import InputField from "../components/InputField";
 function Assessment({ onResult }) {
 
   const [formData, setFormData] = useState({
-    // Personal
+
+    // ------------------------------------------
+    // PERSONAL
+    // ------------------------------------------
+
     age: "",
     employment_type: "Salaried",
     employment_years: "",
 
-    // Income
+
+    // ------------------------------------------
+    // INCOME
+    // ------------------------------------------
+
     monthly_income: "",
 
-    // Loan
+
+    // ------------------------------------------
+    // LOAN
+    // ------------------------------------------
+
     loan_amount: "",
     loan_tenure_months: "",
     interest_rate: "",
     existing_loans: "",
     existing_monthly_debt_payment: "",
 
-    // Credit
+
+    // ------------------------------------------
+    // CREDIT
+    // ------------------------------------------
+
     credit_history_months: "",
     credit_utilization: "",
     repayment_consistency: "",
     previous_missed_payments: "",
 
-    // Transactions
-    monthly_transactions: "",
 
-    // Financial behaviour
+    // ------------------------------------------
+    // TRANSACTIONS
+    // ------------------------------------------
+
+    monthly_transactions: "",
     average_transaction_amount: "",
-    spending_volatility: "",
-    cash_flow_stability: "",
-    income_stability: "",
+
   });
+
+
+  const [loading, setLoading] = useState(false);
+
+  const [error, setError] = useState("");
+
+
+  // --------------------------------------------------
+  // NTC STATUS
+  // --------------------------------------------------
+
+  const isNTC =
+    formData.credit_history_months !== "" &&
+    Number(formData.credit_history_months) === 0;
 
 
   // --------------------------------------------------
@@ -54,19 +87,46 @@ function Assessment({ onResult }) {
 
   const calculateEMI = () => {
 
-    const P = Number(formData.loan_amount);
-    const annualRate = Number(formData.interest_rate);
-    const n = Number(formData.loan_tenure_months);
+    const P =
+      Number(formData.loan_amount);
 
-    if (!P || !annualRate || !n) {
+    const annualRate =
+      Number(formData.interest_rate);
+
+    const n =
+      Number(formData.loan_tenure_months);
+
+
+    if (
+      !P ||
+      !annualRate ||
+      !n
+    ) {
+
       return 0;
     }
 
-    const r = annualRate / 12 / 100;
+
+    const r =
+      annualRate / 12 / 100;
+
 
     const emi =
-      (P * r * Math.pow(1 + r, n)) /
-      (Math.pow(1 + r, n) - 1);
+      (
+        P *
+        r *
+        Math.pow(
+          1 + r,
+          n
+        )
+      ) /
+      (
+        Math.pow(
+          1 + r,
+          n
+        ) - 1
+      );
+
 
     return emi;
   };
@@ -78,14 +138,20 @@ function Assessment({ onResult }) {
 
   const calculateMonthlyDebt = () => {
 
-    const emi = calculateEMI();
+    const emi =
+      calculateEMI();
+
 
     const existingDebt =
       Number(
         formData.existing_monthly_debt_payment
       ) || 0;
 
-    return emi + existingDebt;
+
+    return (
+      emi +
+      existingDebt
+    );
   };
 
 
@@ -96,16 +162,21 @@ function Assessment({ onResult }) {
   const calculatePostLoanDTI = () => {
 
     const income =
-      Number(formData.monthly_income);
+      Number(
+        formData.monthly_income
+      );
+
 
     if (!income) {
+
       return 0;
     }
 
-    const monthlyDebt =
-      calculateMonthlyDebt();
 
-    return monthlyDebt / income;
+    return (
+      calculateMonthlyDebt() /
+      income
+    );
   };
 
 
@@ -120,10 +191,158 @@ function Assessment({ onResult }) {
       value,
     } = event.target;
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
+
+
+    setError("");
+  };
+
+
+  // --------------------------------------------------
+  // HANDLE NTC TOGGLE
+  // --------------------------------------------------
+
+  const handleNTCToggle = () => {
+
+    if (isNTC) {
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+
+          credit_history_months: "",
+
+          credit_utilization: "",
+
+          repayment_consistency: "",
+
+          previous_missed_payments: "",
+
+          existing_loans: "",
+
+          existing_monthly_debt_payment: "",
+        })
+      );
+
+    } else {
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+
+          credit_history_months: "0",
+
+          credit_utilization: "0",
+
+          repayment_consistency: "0",
+
+          previous_missed_payments: "0",
+
+          existing_loans: "0",
+
+          existing_monthly_debt_payment: "0",
+        })
+      );
+    }
+
+    setError("");
+  };
+
+
+  // --------------------------------------------------
+  // VALIDATION
+  // --------------------------------------------------
+
+  const validateForm = () => {
+
+    const income =
+      Number(
+        formData.monthly_income
+      );
+
+    const loan =
+      Number(
+        formData.loan_amount
+      );
+
+    const tenure =
+      Number(
+        formData.loan_tenure_months
+      );
+
+    const interest =
+      Number(
+        formData.interest_rate
+      );
+
+
+    if (income <= 0) {
+
+      return "Monthly income must be greater than zero.";
+    }
+
+
+    if (loan <= 0) {
+
+      return "Loan amount must be greater than zero.";
+    }
+
+
+    if (tenure <= 0) {
+
+      return "Loan tenure must be greater than zero.";
+    }
+
+
+    if (interest <= 0) {
+
+      return "Interest rate must be greater than zero.";
+    }
+
+
+    if (
+      Number(
+        formData.credit_history_months
+      ) === 0 &&
+      Number(
+        formData.existing_loans
+      ) !== 0
+    ) {
+
+      return (
+        "An applicant with no credit history cannot have existing loans."
+      );
+    }
+
+
+    if (
+      Number(
+        formData.credit_history_months
+      ) === 0 &&
+      (
+        Number(
+          formData.credit_utilization
+        ) !== 0 ||
+
+        Number(
+          formData.previous_missed_payments
+        ) !== 0
+      )
+    ) {
+
+      return (
+        "For an NTC applicant, credit utilization and previous missed payments must be zero."
+      );
+    }
+
+
+    return null;
   };
 
 
@@ -136,77 +355,115 @@ function Assessment({ onResult }) {
     event.preventDefault();
 
 
-    /*
-      These are the fields that the model actually expects.
-      The user does NOT directly enter monthly_debt_payment
-      or post_loan_dti.
-    */
+    setError("");
+
+
+    const validationError =
+      validateForm();
+
+
+    if (validationError) {
+
+      setError(
+        validationError
+      );
+
+      return;
+    }
+
+
+    setLoading(true);
+
+
+    // --------------------------------------------------
+    // DETERMINE NTC FLAG
+    // --------------------------------------------------
+
+    const ntcFlag =
+      Number(
+        formData.credit_history_months
+      ) === 0
+        ? 1
+        : 0;
+
+
+    // --------------------------------------------------
+    // FINAL MODEL PAYLOAD
+    // --------------------------------------------------
 
     const payload = {
 
-      // Personal
-      age: Number(formData.age),
+      age:
+        Number(
+          formData.age
+        ),
 
       employment_type:
         formData.employment_type,
 
       employment_years:
-        Number(formData.employment_years),
+        Number(
+          formData.employment_years
+        ),
 
-
-      // Income
       monthly_income:
-        Number(formData.monthly_income),
+        Number(
+          formData.monthly_income
+        ),
 
-
-      // Loan
       loan_amount:
-        Number(formData.loan_amount),
+        Number(
+          formData.loan_amount
+        ),
 
       loan_tenure_months:
-        Number(formData.loan_tenure_months),
+        Number(
+          formData.loan_tenure_months
+        ),
 
       existing_loans:
-        Number(formData.existing_loans),
+        Number(
+          formData.existing_loans
+        ),
 
-
-      // Calculated model features
       monthly_debt_payment:
         calculateMonthlyDebt(),
 
       post_loan_dti:
         calculatePostLoanDTI(),
 
-
-      // Credit
       credit_history_months:
-        Number(formData.credit_history_months),
+        Number(
+          formData.credit_history_months
+        ),
 
       credit_utilization:
-        Number(formData.credit_utilization),
+        Number(
+          formData.credit_utilization
+        ),
 
       repayment_consistency:
-        Number(formData.repayment_consistency),
+        Number(
+          formData.repayment_consistency
+        ),
 
       previous_missed_payments:
-        Number(formData.previous_missed_payments),
+        Number(
+          formData.previous_missed_payments
+        ),
 
-
-      // Transactions
       monthly_transactions:
-        Number(formData.monthly_transactions),
+        Number(
+          formData.monthly_transactions
+        ),
 
       average_transaction_amount:
-        Number(formData.average_transaction_amount),
+        Number(
+          formData.average_transaction_amount
+        ),
 
-      spending_volatility:
-        Number(formData.spending_volatility),
-
-      cash_flow_stability:
-        Number(formData.cash_flow_stability),
-
-      income_stability:
-        Number(formData.income_stability),
+      ntc_flag:
+        ntcFlag,
     };
 
 
@@ -218,28 +475,63 @@ function Assessment({ onResult }) {
 
     try {
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/predict",
-        {
-          method: "POST",
+      const response =
+        await fetch(
+          "http://127.0.0.1:8000/predict",
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type": "application/json",
-          },
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-          body: JSON.stringify(payload),
-        }
-      );
+            body:
+              JSON.stringify(
+                payload
+              ),
+          }
+        );
 
+
+      // --------------------------------------------------
+      // HANDLE API ERROR
+      // --------------------------------------------------
 
       if (!response.ok) {
 
-        throw new Error(
-          `Request failed: ${response.status}`
-        );
+        let message =
+          `Request failed: ${response.status}`;
 
+
+        try {
+
+          const errorData =
+            await response.json();
+
+
+          if (errorData.detail) {
+
+            message =
+              errorData.detail;
+          }
+
+        } catch {
+
+          // Ignore JSON parsing error
+
+        }
+
+
+        throw new Error(
+          message
+        );
       }
 
+
+      // --------------------------------------------------
+      // GET RESULT
+      // --------------------------------------------------
 
       const result =
         await response.json();
@@ -251,7 +543,40 @@ function Assessment({ onResult }) {
       );
 
 
-      onResult(result);
+      // --------------------------------------------------
+      // SEND RESULT + APPLICANT
+      //
+      // The model payload is preserved exactly.
+      //
+      // We additionally keep:
+      //
+      // interest_rate
+      // existing_monthly_debt_payment
+      //
+      // These are needed by What-If Analysis.
+      // --------------------------------------------------
+
+      onResult({
+
+        result: result,
+
+        applicant: {
+
+          ...payload,
+
+          interest_rate:
+            Number(
+              formData.interest_rate
+            ),
+
+          existing_monthly_debt_payment:
+            Number(
+              formData.existing_monthly_debt_payment
+            ) || 0,
+
+        },
+
+      });
 
 
     } catch (error) {
@@ -261,45 +586,128 @@ function Assessment({ onResult }) {
         error
       );
 
+
+      setError(
+        error.message ||
+        "Unable to complete the assessment."
+      );
+
+    } finally {
+
+      setLoading(false);
     }
   };
 
 
-  return (
-    <main className="min-h-[calc(100vh-72px)]">
+  // --------------------------------------------------
+  // RENDER
+  // --------------------------------------------------
 
-      <div className="mx-auto max-w-5xl px-6 py-14 lg:px-8 lg:py-18">
+  return (
+
+    <main className="min-h-[calc(100vh-72px)] bg-slate-50">
+
+
+      <div className="mx-auto max-w-5xl px-6 py-12 lg:px-8 lg:py-16">
 
 
         {/* ==================================================
             HERO
         ================================================== */}
 
-        <div className="mb-10 max-w-2xl">
+        <div className="mb-10">
 
-          <p className="mb-3 text-xs font-bold tracking-[0.16em] text-emerald-700">
-            CREDIT RISK ASSESSMENT
-          </p>
+          <div className="mb-4 flex items-center gap-2">
+
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+
+              <ShieldCheck
+                size={17}
+                className="text-emerald-700"
+              />
+
+            </div>
+
+
+            <p className="text-xs font-bold tracking-[0.16em] text-emerald-700">
+
+              CREDIT RISK ASSESSMENT
+
+            </p>
+
+          </div>
+
 
           <h1 className="text-4xl font-bold tracking-[-0.04em] text-slate-950 sm:text-5xl">
 
             Assess applicant
 
             <span className="block text-emerald-800">
+
               default risk.
+
             </span>
 
           </h1>
 
-          <p className="mt-5 max-w-xl text-base leading-7 text-slate-500">
 
-            Enter the applicant's financial and
-            credit information to generate an
-            explainable, AI-powered risk assessment.
+          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-500">
+
+            Enter the applicant's financial and credit
+            information to generate an explainable,
+            AI-powered risk assessment.
 
           </p>
 
+
+          {/* AI BADGE */}
+
+          <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white px-4 py-2 text-xs font-medium text-slate-600 shadow-sm">
+
+            <Sparkles
+              size={14}
+              className="text-emerald-600"
+            />
+
+            XGBoost + SHAP + AI Explanation
+
+          </div>
+
         </div>
+
+
+        {/* ==================================================
+            ERROR
+        ================================================== */}
+
+        {error && (
+
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+
+            <AlertCircle
+              size={18}
+              className="mt-0.5 shrink-0"
+            />
+
+            <div>
+
+              <p className="font-semibold">
+
+                Assessment could not be completed
+
+              </p>
+
+              <p className="mt-1">
+
+                {error}
+
+              </p>
+
+            </div>
+
+          </div>
+
+        )}
 
 
         {/* ==================================================
@@ -438,15 +846,28 @@ function Assessment({ onResult }) {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
 
+
               {/* EMI */}
 
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+              <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4">
 
-                <p className="text-xs font-medium text-emerald-700">
-                  Estimated New Loan EMI
-                </p>
+                <div className="flex items-center justify-between">
 
-                <p className="mt-1 text-xl font-bold text-slate-900">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+
+                    Estimated EMI
+
+                  </p>
+
+                  <WalletCards
+                    size={16}
+                    className="text-emerald-600"
+                  />
+
+                </div>
+
+
+                <p className="mt-2 text-2xl font-bold text-slate-900">
 
                   ₹
                   {calculateEMI().toLocaleString(
@@ -458,8 +879,11 @@ function Assessment({ onResult }) {
 
                 </p>
 
+
                 <p className="mt-1 text-xs text-slate-400">
-                  Calculated from loan amount, tenure and interest rate.
+
+                  Estimated monthly payment for the new loan.
+
                 </p>
 
               </div>
@@ -467,20 +891,40 @@ function Assessment({ onResult }) {
 
               {/* DTI */}
 
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+              <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4">
 
-                <p className="text-xs font-medium text-emerald-700">
-                  Post-loan DTI
+                <div className="flex items-center justify-between">
+
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+
+                    Post-loan DTI
+
+                  </p>
+
+                  <Activity
+                    size={16}
+                    className="text-emerald-600"
+                  />
+
+                </div>
+
+
+                <p className="mt-2 text-2xl font-bold text-slate-900">
+
+                  {
+                    (
+                      calculatePostLoanDTI() *
+                      100
+                    ).toFixed(1)
+                  }%
+
                 </p>
 
-                <p className="mt-1 text-xl font-bold text-slate-900">
-
-                  {(calculatePostLoanDTI() * 100).toFixed(1)}%
-
-                </p>
 
                 <p className="mt-1 text-xs text-slate-400">
+
                   Total monthly debt relative to income.
+
                 </p>
 
               </div>
@@ -491,13 +935,13 @@ function Assessment({ onResult }) {
 
 
           {/* ==================================================
-              INCOME & FINANCIAL STABILITY
+              INCOME
           ================================================== */}
 
           <FormSection
             icon={WalletCards}
             title="Income & Financial Stability"
-            description="Income and cash-flow characteristics."
+            description="Current income and financial activity."
           >
 
             <InputField
@@ -510,108 +954,6 @@ function Assessment({ onResult }) {
               required
             />
 
-
-            <InputField
-              label="Income Stability"
-              name="income_stability"
-              value={formData.income_stability}
-              onChange={handleChange}
-              placeholder="0.90"
-              min="0"
-              max="1"
-              step="0.01"
-              help="Value between 0 and 1."
-              required
-            />
-
-
-            <InputField
-              label="Cash-flow Stability"
-              name="cash_flow_stability"
-              value={formData.cash_flow_stability}
-              onChange={handleChange}
-              placeholder="0.90"
-              min="0"
-              max="1"
-              step="0.01"
-              help="Value between 0 and 1."
-              required
-            />
-
-          </FormSection>
-
-
-          {/* ==================================================
-              CREDIT HISTORY
-          ================================================== */}
-
-          <FormSection
-            icon={CreditCard}
-            title="Credit History"
-            description="Credit behavior and repayment history."
-          >
-
-            <InputField
-              label="Credit History"
-              name="credit_history_months"
-              value={formData.credit_history_months}
-              onChange={handleChange}
-              placeholder="48"
-              min="0"
-              required
-            />
-
-
-            <InputField
-              label="Credit Utilization"
-              name="credit_utilization"
-              value={formData.credit_utilization}
-              onChange={handleChange}
-              placeholder="20"
-              min="0"
-              max="100"
-              step="0.1"
-              help="Percentage of available credit being used."
-              required
-            />
-
-
-            <InputField
-              label="Repayment Consistency"
-              name="repayment_consistency"
-              value={formData.repayment_consistency}
-              onChange={handleChange}
-              placeholder="90"
-              min="0"
-              max="100"
-              step="0.1"
-              help="Percentage of on-time payments."
-              required
-            />
-
-
-            <InputField
-              label="Previous Missed Payments"
-              name="previous_missed_payments"
-              value={formData.previous_missed_payments}
-              onChange={handleChange}
-              placeholder="0"
-              min="0"
-              required
-            />
-
-          </FormSection>
-
-
-          {/* ==================================================
-              TRANSACTION BEHAVIOUR
-          ================================================== */}
-
-          <FormSection
-            icon={Activity}
-            title="Transaction Behaviour"
-            description="Patterns in the applicant's financial activity."
-          >
 
             <InputField
               label="Monthly Transactions"
@@ -633,20 +975,190 @@ function Assessment({ onResult }) {
               onChange={handleChange}
               placeholder="800"
               min="0"
+              help="Typical value of a monthly transaction."
+              required
+            />
+
+          </FormSection>
+
+
+          {/* ==================================================
+              CREDIT
+          ================================================== */}
+
+          <FormSection
+            icon={CreditCard}
+            title="Credit Profile"
+            description="Credit history and repayment information."
+          >
+
+
+            {/* NTC TOGGLE */}
+
+            <div className="md:col-span-2">
+
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
+
+                <div className="flex items-start gap-3">
+
+                  <div
+                    className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg ${
+                      isNTC
+                        ? "bg-amber-100"
+                        : "bg-emerald-100"
+                    }`}
+                  >
+
+                    <CreditCard
+                      size={17}
+                      className={
+                        isNTC
+                          ? "text-amber-700"
+                          : "text-emerald-700"
+                      }
+                    />
+
+                  </div>
+
+
+                  <div>
+
+                    <p className="text-sm font-semibold text-slate-900">
+
+                      New to Credit
+
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-500">
+
+                      Applicant has no established formal credit history.
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+
+                <button
+                  type="button"
+                  onClick={handleNTCToggle}
+                  className={`relative h-6 w-11 rounded-full transition ${
+                    isNTC
+                      ? "bg-emerald-700"
+                      : "bg-slate-300"
+                  }`}
+                >
+
+                  <span
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
+                      isNTC
+                        ? "left-6"
+                        : "left-1"
+                    }`}
+                  />
+
+                </button>
+
+              </div>
+
+
+              {isNTC && (
+
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+
+                  <p className="text-sm font-semibold text-amber-900">
+
+                    NTC applicant
+
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-amber-800">
+
+                    Historical credit information is unavailable.
+                    The assessment will rely more heavily on current
+                    income, employment, affordability and financial activity.
+
+                  </p>
+
+                </div>
+
+              )}
+
+            </div>
+
+
+            <InputField
+              label="Credit History"
+              name="credit_history_months"
+              value={
+                formData.credit_history_months
+              }
+              onChange={handleChange}
+              placeholder="48"
+              min="0"
+              disabled={isNTC}
+              help={
+                isNTC
+                  ? "NTC applicants have 0 months of formal credit history."
+                  : "Length of established formal credit history."
+              }
               required
             />
 
 
             <InputField
-              label="Spending Volatility"
-              name="spending_volatility"
-              value={formData.spending_volatility}
+              label="Credit Utilization"
+              name="credit_utilization"
+              value={
+                formData.credit_utilization
+              }
               onChange={handleChange}
-              placeholder="0.10"
+              placeholder="20"
               min="0"
-              max="1"
-              step="0.01"
-              help="Value between 0 and 1."
+              max="100"
+              step="0.1"
+              disabled={isNTC}
+              help={
+                isNTC
+                  ? "No previous revolving-credit utilization."
+                  : "Percentage of available credit being used."
+              }
+              required
+            />
+
+
+            <InputField
+              label="Repayment Consistency"
+              name="repayment_consistency"
+              value={
+                formData.repayment_consistency
+              }
+              onChange={handleChange}
+              placeholder="90"
+              min="0"
+              max="100"
+              step="0.1"
+              disabled={isNTC}
+              help={
+                isNTC
+                  ? "No established formal repayment history."
+                  : "Percentage of on-time payments."
+              }
+              required
+            />
+
+
+            <InputField
+              label="Previous Missed Payments"
+              name="previous_missed_payments"
+              value={
+                formData.previous_missed_payments
+              }
+              onChange={handleChange}
+              placeholder="0"
+              min="0"
+              disabled={isNTC}
               required
             />
 
@@ -657,32 +1169,79 @@ function Assessment({ onResult }) {
               SUBMIT
           ================================================== */}
 
-          <div className="flex flex-col items-start justify-between gap-5 pt-3 sm:flex-row sm:items-center">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
-            <p className="max-w-lg text-xs leading-5 text-slate-400">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
-              The information provided will be processed
-              by the credit-risk model to generate an
-              assessment.
+              <div>
 
-            </p>
+                <div className="flex items-center gap-2">
+
+                  <ShieldCheck
+                    size={17}
+                    className="text-emerald-700"
+                  />
+
+                  <p className="text-sm font-semibold text-slate-900">
+
+                    Ready for assessment
+
+                  </p>
+
+                </div>
 
 
-            <button
-              type="submit"
-              className="group flex items-center gap-3 rounded-xl bg-emerald-900 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 hover:shadow-md"
-            >
+                <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">
 
-              Analyze Risk
+                  Your information will be evaluated using the
+                  credit-risk model and explained using AI.
 
-              <ArrowRight
-                size={17}
-                className="transition-transform group-hover:translate-x-1"
-              />
+                </p>
 
-            </button>
+              </div>
+
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`group flex min-w-[180px] items-center justify-center gap-3 rounded-xl px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition ${
+                  loading
+                    ? "cursor-not-allowed bg-slate-400"
+                    : "bg-emerald-900 hover:bg-emerald-800 hover:shadow-md"
+                }`}
+              >
+
+                {loading ? (
+
+                  <>
+
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+
+                    Assessing...
+
+                  </>
+
+                ) : (
+
+                  <>
+
+                    Analyze Risk
+
+                    <ArrowRight
+                      size={17}
+                      className="transition-transform group-hover:translate-x-1"
+                    />
+
+                  </>
+
+                )}
+
+              </button>
+
+            </div>
 
           </div>
+
 
         </form>
 

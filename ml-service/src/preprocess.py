@@ -1,6 +1,11 @@
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
+
+# ==================================================
+# FEATURES
+# ==================================================
+
 NUMERICAL_FEATURES = [
     "age",
     "employment_years",
@@ -16,10 +21,9 @@ NUMERICAL_FEATURES = [
     "previous_missed_payments",
     "monthly_transactions",
     "average_transaction_amount",
-    "spending_volatility",
-    "cash_flow_stability",
-    "income_stability"
+    "ntc_flag"
 ]
+
 
 CATEGORICAL_FEATURES = [
     "employment_type"
@@ -28,20 +32,97 @@ CATEGORICAL_FEATURES = [
 
 TARGET = "default"
 
+
+# ==================================================
+# PREPROCESSOR
+# ==================================================
+
 def create_preprocessor():
-    encoder=OneHotEncoder( handle_unknown="ignore",
-        sparse_output=False)
+
+    encoder = OneHotEncoder(
+        handle_unknown="ignore",
+        sparse_output=False
+    )
+
     return encoder
 
-def prepare_features(data,encoder=None,fit=False):
-    numeric_data=data[NUMERICAL_FEATURES].copy()
-    categorical_features=data[CATEGORICAL_FEATURES].copy()
+
+# ==================================================
+# PREPARE FEATURES
+# ==================================================
+
+def prepare_features(
+    data,
+    encoder=None,
+    fit=False
+):
+
+    # ------------------------------
+    # Numerical features
+    # ------------------------------
+
+    numeric_data = (
+        data[NUMERICAL_FEATURES]
+        .copy()
+    )
+
+
+    # ------------------------------
+    # Categorical features
+    # ------------------------------
+
+    categorical_data = (
+        data[CATEGORICAL_FEATURES]
+        .copy()
+    )
+
+
+    # ------------------------------
+    # Fit / transform encoder
+    # ------------------------------
+
     if fit:
-        encoded=encoder.fit_transform(categorical_features)
+
+        encoded = encoder.fit_transform(
+            categorical_data
+        )
+
     else:
-        encoded=encoder.transform(categorical_features)
-    encoded_columns=(encoder.get_feature_names_out(CATEGORICAL_FEATURES))
-    encoded_data=pd.DataFrame(encoded,columns=encoded_columns,index=data.index)
-    X=pd.concat([numeric_data,encoded_data],axis=1)
+
+        encoded = encoder.transform(
+            categorical_data
+        )
+
+
+    # ------------------------------
+    # Encoded column names
+    # ------------------------------
+
+    encoded_columns = (
+        encoder.get_feature_names_out(
+            CATEGORICAL_FEATURES
+        )
+    )
+
+
+    encoded_data = pd.DataFrame(
+        encoded,
+        columns=encoded_columns,
+        index=data.index
+    )
+
+
+    # ------------------------------
+    # Combine features
+    # ------------------------------
+
+    X = pd.concat(
+        [
+            numeric_data,
+            encoded_data
+        ],
+        axis=1
+    )
+
+
     return X
-    

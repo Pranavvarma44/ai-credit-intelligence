@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
-from app.services.explainability import get_risk_factors
-from app.services.gemini import generate_risk_explanation
+
 
 # --------------------------------------------------
 # ML SERVICE PATH
@@ -20,6 +19,10 @@ sys.path.insert(
 )
 
 
+# --------------------------------------------------
+# IMPORT ML PREDICTION
+# --------------------------------------------------
+
 from predict import predict_credit_risk
 
 
@@ -29,25 +32,17 @@ from predict import predict_credit_risk
 
 def predict_applicant(applicant_data):
 
+    # ------------------------------------------
+    # XGBOOST PREDICTION ONLY
+    # ------------------------------------------
+
     prediction = predict_credit_risk(
         applicant_data
     )
 
-    risk_factors = get_risk_factors(
-        applicant_data
-    )
 
-    explanation = generate_risk_explanation(
-        probability=prediction["probability_of_default"],
-        decision=prediction["decision"],
-        risk_increasing_factors=
-            risk_factors["risk_increasing_factors"],
-        risk_reducing_factors=
-            risk_factors["risk_reducing_factors"]
-    )
+    # ------------------------------------------
+    # RETURN PREDICTION
+    # ------------------------------------------
 
-    return {
-        **prediction,
-        **risk_factors,
-        "explanation": explanation
-    }
+    return prediction

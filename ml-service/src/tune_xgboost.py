@@ -1,4 +1,5 @@
 import pandas as pd
+import joblib
 
 from xgboost import XGBClassifier
 
@@ -7,7 +8,12 @@ from sklearn.model_selection import (
     StratifiedKFold
 )
 
-import joblib
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    roc_auc_score,
+    average_precision_score
+)
 
 
 # --------------------------------------------------
@@ -24,13 +30,37 @@ y_train = pd.read_csv(
 
 
 # --------------------------------------------------
+# LOAD TEST DATA
+# --------------------------------------------------
+
+X_test = pd.read_csv(
+    "data/X_test.csv"
+)
+
+y_test = pd.read_csv(
+    "data/y_test.csv"
+).squeeze()
+
+
+print("\n==============================")
+print("DATA")
+print("==============================")
+
+print("Training:", X_train.shape)
+print("Testing :", X_test.shape)
+
+
+# --------------------------------------------------
 # BASE XGBOOST MODEL
 # --------------------------------------------------
 
 xgboost_model = XGBClassifier(
     objective="binary:logistic",
+
     eval_metric="logloss",
+
     random_state=42,
+
     n_jobs=-1
 )
 
@@ -79,7 +109,7 @@ parameter_grid = {
 
 
 # --------------------------------------------------
-# 5-FOLD CROSS VALIDATION
+# STRATIFIED 5-FOLD CROSS VALIDATION
 # --------------------------------------------------
 
 cv = StratifiedKFold(
@@ -94,13 +124,21 @@ cv = StratifiedKFold(
 # --------------------------------------------------
 
 search = RandomizedSearchCV(
+
     estimator=xgboost_model,
+
     param_distributions=parameter_grid,
+
     n_iter=20,
+
     scoring="average_precision",
+
     cv=cv,
+
     verbose=2,
+
     random_state=42,
+
     n_jobs=-1
 )
 
@@ -112,6 +150,7 @@ search = RandomizedSearchCV(
 print("\n==============================")
 print("TUNING XGBOOST")
 print("==============================")
+
 
 search.fit(
     X_train,
@@ -146,16 +185,117 @@ print(
 
 
 # --------------------------------------------------
-# SAVE BEST MODEL
+# BEST MODEL
 # --------------------------------------------------
 
 best_xgboost = (
     search.best_estimator_
 )
 
+
+# --------------------------------------------------
+# TEST PREDICTIONS
+# --------------------------------------------------
+
+y_probability = (
+    best_xgboost.predict_proba(
+        X_test
+    )[:, 1]
+)
+
+
+# --------------------------------------------------
+# DEFAULT CLASS PREDICTIONS
+# --------------------------------------------------
+
+y_prediction = (
+    y_probability >= 0.5
+).astype(int)
+
+
+# --------------------------------------------------
+# ROC-AUC
+# --------------------------------------------------
+
+roc_auc = roc_auc_score(
+    y_test,
+    y_probability
+)
+
+
+# --------------------------------------------------
+# PR-AUC
+# --------------------------------------------------
+
+pr_auc = average_precision_score(
+    y_test,
+    y_probability
+)
+
+
+print("\n==============================")
+print("TEST RESULTS")
+print("==============================")
+
+
+print(
+    f"ROC-AUC : {roc_auc:.4f}"
+)
+
+print(
+    f"PR-AUC  : {pr_auc:.4f}"
+)
+
+
+# --------------------------------------------------
+# CLASSIFICATION REPORT
+# --------------------------------------------------
+
+print("\n==============================")
+print("CLASSIFICATION REPORT")
+print("==============================")
+
+
+print(
+    classification_report(
+        y_test,
+        y_prediction,
+        digits=4
+    )
+)
+
+
+# --------------------------------------------------
+# CONFUSION MATRIX
+# --------------------------------------------------
+
+print("\n==============================")
+print("CONFUSION MATRIX")
+print("==============================")
+
+
+print(
+    confusion_matrix(
+        y_test,
+        y_prediction
+    )
+)
+
+
+# --------------------------------------------------
+# SAVE MODEL
+# --------------------------------------------------
+
 joblib.dump(
     best_xgboost,
     "models/xgboost_tuned.pkl"
 )
 
-print("\nTuned XGBoost saved.")
+
+print("\n==============================")
+print("MODEL SAVED")
+print("==============================")
+
+print(
+    "models/xgboost_tuned.pkl"
+)

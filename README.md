@@ -91,4 +91,4 @@ Database: PostgreSQL
 
 For production deployment, update the frontend environment variable:
 
-VITE_API_URL=https://your-backend.onrender.com
+VITE_API_URL=https://ai-credit-intelligence.onrender.com

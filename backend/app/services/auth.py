@@ -1,28 +1,35 @@
+import os
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
 from datetime import datetime, timedelta
-from pathlib import Path
-import sqlite3
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
+from dotenv import load_dotenv
 
-# --------------------------------------------------
-# DATABASE
-# --------------------------------------------------
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+# ==================================================
+# ENVIRONMENT
+# ==================================================
 
-DATABASE_PATH = (
-    BASE_DIR / "users.db"
+load_dotenv()
+
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL"
 )
 
 
-# --------------------------------------------------
-# JWT SETTINGS
-# --------------------------------------------------
+# ==================================================
+# JWT
+# ==================================================
 
-SECRET_KEY = (
-    "credit-risk-development-secret-key-change-this"
+SECRET_KEY = os.getenv(
+    "JWT_SECRET_KEY",
+    "development-secret-change-this"
 )
 
 ALGORITHM = "HS256"
@@ -30,9 +37,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 
-# --------------------------------------------------
+# ==================================================
 # PASSWORD HASHING
-# --------------------------------------------------
+# ==================================================
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
@@ -40,26 +47,26 @@ pwd_context = CryptContext(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # DATABASE CONNECTION
-# --------------------------------------------------
+# ==================================================
 
 def get_connection():
 
-    connection = sqlite3.connect(
-        DATABASE_PATH
+    if not DATABASE_URL:
+
+        raise RuntimeError(
+            "DATABASE_URL is not configured."
+        )
+
+    return psycopg2.connect(
+        DATABASE_URL
     )
 
-    connection.row_factory = (
-        sqlite3.Row
-    )
 
-    return connection
-
-
-# --------------------------------------------------
-# CREATE TABLE
-# --------------------------------------------------
+# ==================================================
+# INITIALIZE DATABASE
+# ==================================================
 
 def init_database():
 
@@ -71,40 +78,73 @@ def init_database():
         """
         CREATE TABLE IF NOT EXISTS users (
 
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
 
-            name TEXT NOT NULL,
+            name VARCHAR(255) NOT NULL,
 
-            email TEXT UNIQUE NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
 
             password_hash TEXT NOT NULL,
 
-            created_at TEXT NOT NULL
+            created_at TIMESTAMP NOT NULL
 
-        )
+        );
         """
     )
 
     connection.commit()
 
+    cursor.close()
+
     connection.close()
 
 
-# --------------------------------------------------
-# PASSWORD FUNCTIONS
-# --------------------------------------------------
+# ==================================================
+# PASSWORD VALIDATION
+# ==================================================
+
+def validate_password(password: str):
+
+    if not password:
+
+        raise ValueError(
+            "Password cannot be empty."
+        )
+
+    if len(
+        password.encode("utf-8")
+    ) > 72:
+
+        raise ValueError(
+            "Password cannot be longer than 72 bytes."
+        )
+
+
+# ==================================================
+# HASH PASSWORD
+# ==================================================
 
 def hash_password(password: str):
+
+    validate_password(password)
 
     return pwd_context.hash(
         password
     )
 
 
+# ==================================================
+# VERIFY PASSWORD
+# ==================================================
+
 def verify_password(
-    plain_password: str,
-    password_hash: str
+    plain_password,
+    password_hash
 ):
+
+    validate_password(
+        plain_password
+    )
 
     return pwd_context.verify(
         plain_password,
@@ -112,35 +152,44 @@ def verify_password(
     )
 
 
-# --------------------------------------------------
-# FIND USER
-# --------------------------------------------------
+# ==================================================
+# GET USER BY EMAIL
+# ==================================================
 
 def get_user_by_email(email: str):
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    cursor = connection.cursor(
+        cursor_factory=RealDictCursor
+    )
 
     cursor.execute(
         """
-        SELECT *
+        SELECT
+            id,
+            name,
+            email,
+            password_hash,
+            created_at
         FROM users
-        WHERE email = ?
+        WHERE email = %s
         """,
         (email.lower(),)
     )
 
     user = cursor.fetchone()
 
+    cursor.close()
+
     connection.close()
 
     return user
 
 
-# --------------------------------------------------
+# ==================================================
 # CREATE USER
-# --------------------------------------------------
+# ==================================================
 
 def create_user(
     name: str,
@@ -148,21 +197,15 @@ def create_user(
     password: str
 ):
 
-    connection = get_connection()
-
-    cursor = connection.cursor()
-
-
     password_hash = hash_password(
         password
     )
 
+    connection = get_connection()
 
-    created_at = (
-        datetime.utcnow()
-        .isoformat()
+    cursor = connection.cursor(
+        cursor_factory=RealDictCursor
     )
-
 
     try:
 
@@ -175,23 +218,32 @@ def create_user(
                 created_at
             )
 
-            VALUES (?, ?, ?, ?)
+            VALUES (
+                %s,
+                %s,
+                %s,
+                %s
+            )
+
+            RETURNING id, name, email
             """,
             (
                 name,
                 email.lower(),
                 password_hash,
-                created_at,
+                datetime.utcnow()
             )
         )
 
+        user = cursor.fetchone()
+
         connection.commit()
 
-        user_id = cursor.lastrowid
+        return dict(user)
 
-    except sqlite3.IntegrityError:
+    except psycopg2.errors.UniqueViolation:
 
-        connection.close()
+        connection.rollback()
 
         raise ValueError(
             "An account with this email already exists."
@@ -199,19 +251,14 @@ def create_user(
 
     finally:
 
+        cursor.close()
+
         connection.close()
 
 
-    return {
-        "id": user_id,
-        "name": name,
-        "email": email.lower(),
-    }
-
-
-# --------------------------------------------------
+# ==================================================
 # AUTHENTICATE USER
-# --------------------------------------------------
+# ==================================================
 
 def authenticate_user(
     email: str,
@@ -222,26 +269,31 @@ def authenticate_user(
         email
     )
 
-
     if not user:
 
         return None
 
+    try:
 
-    if not verify_password(
-        password,
-        user["password_hash"]
-    ):
+        valid = verify_password(
+            password,
+            user["password_hash"]
+        )
+
+    except ValueError:
 
         return None
 
+    if not valid:
+
+        return None
 
     return user
 
 
-# --------------------------------------------------
+# ==================================================
 # CREATE JWT
-# --------------------------------------------------
+# ==================================================
 
 def create_access_token(
     user_id: int,
@@ -253,10 +305,9 @@ def create_access_token(
         +
         timedelta(
             minutes=
-                ACCESS_TOKEN_EXPIRE_MINUTES
+            ACCESS_TOKEN_EXPIRE_MINUTES
         )
     )
-
 
     payload = {
 
@@ -264,10 +315,9 @@ def create_access_token(
 
         "email": email,
 
-        "exp": expires_at,
+        "exp": expires_at
 
     }
-
 
     return jwt.encode(
         payload,
@@ -276,9 +326,9 @@ def create_access_token(
     )
 
 
-# --------------------------------------------------
+# ==================================================
 # VERIFY JWT
-# --------------------------------------------------
+# ==================================================
 
 def verify_token(token: str):
 

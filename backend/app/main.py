@@ -69,6 +69,10 @@ def home():
 # PREDICTION
 # --------------------------------------------------
 
+@app.on_event("startup")
+def startup():
+
+    init_database()
 @app.post(
     "/predict",
     response_model=PredictionResponse

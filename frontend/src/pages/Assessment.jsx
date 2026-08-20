@@ -15,8 +15,9 @@ import {
 import FormSection from "../components/FormSection";
 import InputField from "../components/InputField";
 
-
+const API_URL = import.meta.env.VITE_API_URL;
 function Assessment({ onResult }) {
+
 
   const [formData, setFormData] = useState({
 
@@ -477,7 +478,7 @@ function Assessment({ onResult }) {
 
       const response =
         await fetch(
-          "http://127.0.0.1:8000/predict",
+          "{API_URL}/predict",
           {
             method: "POST",
 

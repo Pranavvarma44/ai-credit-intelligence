@@ -8,7 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-
+const API_URL = import.meta.env.VITE_API_URL;
 function Register({ onLogin }) {
 
   const [formData, setFormData] = useState({
@@ -76,7 +76,7 @@ function Register({ onLogin }) {
     try {
 
       const response = await fetch(
-        "http://127.0.0.1:8000/auth/register",
+        "{API_URL}/auth/register",
         {
           method: "POST",
 

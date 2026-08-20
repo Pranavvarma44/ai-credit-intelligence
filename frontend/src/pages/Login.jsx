@@ -8,12 +8,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-
+const API_URL = import.meta.env.VITE_API_URL;
 function Login({
   onLogin,
   onRegister,
 }) {
-
+ 
   const [email, setEmail] =
     useState("");
 
@@ -39,7 +39,7 @@ function Login({
 
       const response =
         await fetch(
-          "http://127.0.0.1:8000/auth/login",
+          "{API_URL}/auth/login",
           {
             method: "POST",
 

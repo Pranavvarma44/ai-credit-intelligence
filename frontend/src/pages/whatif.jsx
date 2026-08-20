@@ -17,12 +17,13 @@ import {
 // --------------------------------------------------
 // EMI CALCULATION
 // --------------------------------------------------
-
+const API_URL = import.meta.env.VITE_API_URL;
 function calculateEMI(
   principal,
   annualRate,
   tenureMonths
 ) {
+
   if (
     !principal ||
     !annualRate ||
@@ -231,7 +232,7 @@ function WhatIf({
 
       const response =
         await fetch(
-          "http://localhost:8000/predict",
+          "{API_URL}/predict",
           {
             method: "POST",
 

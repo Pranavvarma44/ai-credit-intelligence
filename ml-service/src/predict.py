@@ -1,22 +1,30 @@
+
+from pathlib import Path
 import pandas as pd
 import joblib
 
 
 # --------------------------------------------------
-# LOAD MODEL + PREPROCESSOR + THRESHOLD
+# PATHS
 # --------------------------------------------------
 
-MODEL_PATH = "models/xgboost_tuned.pkl"
-PREPROCESSOR_PATH = "models/preprocessor.pkl"
-THRESHOLD_PATH = "models/final_threshold.txt"
+SRC_DIR = Path(__file__).resolve().parent
+MODELS_DIR = SRC_DIR / "models"
 
+MODEL_PATH = MODELS_DIR / "xgboost_tuned.pkl"
+PREPROCESSOR_PATH = MODELS_DIR / "preprocessor.pkl"
+THRESHOLD_PATH = MODELS_DIR / "final_threshold.txt"
+
+
+# --------------------------------------------------
+# LOAD MODEL
+# --------------------------------------------------
 
 model = joblib.load(MODEL_PATH)
 encoder = joblib.load(PREPROCESSOR_PATH)
 
 with open(THRESHOLD_PATH, "r") as file:
     threshold = float(file.read())
-
 
 # --------------------------------------------------
 # FEATURES
